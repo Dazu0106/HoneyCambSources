@@ -13,11 +13,13 @@ public class ActControllerManager : MonoBehaviour
     public GameObject player;
     public GameObject up_R, mid_R, down_R;
     public GameObject up_L, mid_L, down_L;
+    public TileBase[] playMap;//playmapの移動可能な初期タイルの数
     private WebSocket ws;
     private Vector3 direction;
     private Tilemap hexTile;
     private string resultTx="";
     private string text="";
+    private int count=0;
     private bool[] settable = new bool[6];//右上、左上、右、左、右下、左下の順で6つ
     private bool movable;//移動可能か
     private string playerNum;//プレイヤーの識別番号
@@ -140,7 +142,7 @@ public class ActControllerManager : MonoBehaviour
                         CheckAroundTile();
                         if(settable[5]){
                             //Debug.Log("Moved left down");
-                        // Debug.Log("settable[5]"+settable[5]);
+                            // Debug.Log("settable[5]"+settable[5]);
                             direction = new Vector3(-0.4f,-0.6f);
                             player.GetComponent<MovementController>().transform.position += direction;
                             player.GetComponent<MovementController>().UpdatePosition();
@@ -148,25 +150,27 @@ public class ActControllerManager : MonoBehaviour
                         }
                         CheckAroundTile();
                     }
-                if(movable)
-                {
-                ws.Send(resultTx);
-                }
-                
-                else
-                {
-                    ws.Send(resultTx+"Stop");
-                }
-                movable=false;
+                    
+                    if(movable)
+                    {
+                        ws.Send(resultTx);
+                        resultTx="";
+                    }
+                    else if(movable==false)
+                    {
+                        ws.Send(resultTx+"Stop");
+                        resultTx="";
+                        text = "" ;
+                    }
+                    movable=false;
                 }
 
             }
-            else
-                {
-                    ws.Send("cantMove");
-                }
-            
-
+            else if(movable==false&&count==0)
+            {
+                ws.Send("cantMove");
+                count++;
+            }
             
         }
         
@@ -175,10 +179,10 @@ public class ActControllerManager : MonoBehaviour
     {   
         Vector3Int[] pos = new Vector3Int[6];
         TileBase[] movableTile = new TileBase[6];
-        Color[] poscolor = new Color[6] ;
-        Vector3Int unmovableTilePos= hexTile.WorldToCell(new Vector3(-6.35f,-4.8f));
+        //Color[] poscolor = new Color[6] ;
+        //Vector3Int unmovableTilePos= hexTile.WorldToCell(new Vector3(-6.35f,-4.8f));
 
-        TileBase unmovableTile =hexTile.GetTile(unmovableTilePos);
+        //TileBase unmovableTile =hexTile.GetTile(unmovableTilePos);
         int length = 6;
          pos[0] = hexTile.WorldToCell(player.GetComponent<MovementController>().transform.position+new Vector3(0.4f,0.6f)); //右斜め上のタイルの色を取得
          pos[1] = hexTile.WorldToCell(player.GetComponent<MovementController>().transform.position+new Vector3(-0.4f,0.6f));//左斜め上
@@ -190,18 +194,23 @@ public class ActControllerManager : MonoBehaviour
         for (int i = 0; i < length; i++)
         {   
             //Debug.Log("pos"+i+"="+pos[i]);
-            poscolor[i]=hexTile.GetColor(pos[i]);
+            //poscolor[i]=hexTile.GetColor(pos[i]);
             movableTile[i]=hexTile.GetTile(pos[i]);
             settable[i]=false;
+            
+            if(movableTile[i]==playMap[0])//タイルが移動可能なものかをチェック
+                {
+                    settable[i]=true;
+                }
             //Debug.Log("movableTile"+i+"="+hexTile.GetTile(pos[i]));
-            if(poscolor[i]==Color.white)//タイルが白いかをチェック
+            /*if(poscolor[i]==Color.white)//タイルが白いかをチェック
             {
                 if(movableTile[i]!=unmovableTile)//タイルが移動可能なものかをチェック
                 {
                     settable[i]=true;
                 }
                 //Debug.Log("settable"+i+"="+settable[i]);
-            }
+            }*/
         }
         
 
